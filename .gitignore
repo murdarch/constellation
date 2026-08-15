@@ -1,0 +1,4 @@
+.beads/*.db
+.beads/dolt-server.port
+*.env
+.beads/interactions.jsonl

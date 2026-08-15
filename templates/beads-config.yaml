@@ -1,0 +1,22 @@
+# Constellation additions to .beads/config.yaml — merge these keys into
+# the file `bd init` generates, and commit it so every clone of the
+# constellation's brain inherits them.
+
+# Per-write auto-backup off: backups are a host concern (a scheduled
+# `dolt dump` or a Dolt remote push, documented in
+# brain/doc/ledger-ops.md), not a write-path side effect. Left on with
+# a least-privilege ledger user, it also warns on every single write —
+# and a warning that always fires is a warning nobody reads.
+#
+# Both spellings below are deliberate, not a mistake to clean up: bd
+# releases have differed in whether they read the dotted key or the
+# nested map. Keep both until your constellation's bd baseline is old
+# enough that you can verify which one yours honors.
+backup.auto: false
+backup:
+    enabled: false
+
+# The ledger is a long-lived server the founding set up deliberately;
+# bd should not race it by spawning its own.
+dolt:
+    auto-start: false
