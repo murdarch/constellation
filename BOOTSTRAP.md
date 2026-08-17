@@ -33,17 +33,40 @@ and can run on any platform `bd` supports.)
 
 ## Step 1 — Survey
 
-Inventory before changing anything: OS, whether Dolt and `bd` are
-installed and their versions, what already listens on the port you'd
-give the ledger, and whether this repo clone is where the human wants
+Inventory before changing anything: OS, whether `bd` is installed and
+its version, and whether this repo clone is where the human wants
 the constellation's brain to live. Record the survey in `brain/doc/` — it is
 the first page of institutional memory.
 
-If Dolt or beads are missing, install them **from their current
-upstream instructions**, not from memory:
+If beads is missing, install it **from its current upstream
+instructions**, not from memory:
 
-- Dolt: https://docs.dolthub.com/introduction/installation
 - beads: https://github.com/gastownhall/beads
+
+(You do not need a separate Dolt install for founding — `bd` embeds its
+own Dolt storage. Install the Dolt CLI only if a later arrangement
+calls for it.)
+
+Two known installer traps (observed with the 1.2.2 installer, verify
+against current behavior):
+
+- **`scripts/install.sh` can exit nonzero after a SUCCESSFUL install**
+  when `~/.local/bin` is not yet on PATH — it prints the PATH advice,
+  then errors anyway. Any `set -e` founding script dies right there
+  with a working `bd` on disk. Check for the binary before concluding
+  the install failed.
+- **Fork detection can silently reroute every write.** If this clone's
+  remotes look fork-shaped (e.g. `origin` = your private remote,
+  `upstream` = the public kit — exactly what Step 2 creates), `bd init`
+  may decide you are a contributor, write `beads.role=contributor` to
+  **global** git config without saying so, and route all writes to a
+  side repo under `~/.beads-planning`. If that dir is later deleted,
+  writes fail with the misleading `embeddeddolt: store is read-only`,
+  and the setting survives `rm -rf .beads` because it lives in git
+  config. Found a founding: run
+  `git config beads.role maintainer` before `bd init`, or pass
+  `bd init --role maintainer`, and verify afterwards with
+  `git config --get-all beads.role`.
 
 ## Step 2 — Own the brain
 
@@ -75,58 +98,61 @@ policy your constitution adopts.
 
 ## Step 3 — Stand up the ledger
 
-The ledger is a Dolt sql-server that outlives any one session.
+The ledger is `bd`'s **embedded** Dolt database, living in this repo's
+`.beads/` and synced through your git remote. There is no server to
+run for a star — issues live in the local DB, sync uses
+`refs/dolt/data` on `origin`, and `.beads/issues.jsonl` is a passive
+export, not the database. (An external `dolt sql-server` is a
+*multi-seat arrangement* — several seats sharing one ledger over
+localhost or tunnels — added later per `brain/doc/arrangements.md`,
+not part of founding. Earlier kit revisions founded on server mode;
+that path is stale: `dolt sql-client` was removed in dolt 1.88, and
+`bd init --server` writes have failed with
+`embeddeddolt: store is read-only` on current bd. Do not fight it —
+found embedded.)
 
-1. Choose a home for the database (e.g. `~/constellation-ledger/`),
-   `dolt init` there, and run `dolt sql-server` bound to
-   **localhost only** — a star has no remote seats, and the default
-   paths must carry no multi-host scar tissue. Make it survive
-   reboots (a systemd user unit with lingering enabled is the boring
-   answer; verify lingering: `loginctl enable-linger <user>`).
-2. Create the database (suggested name: `constellation`) and a ledger
-   user for the seats — not root.
-3. **Write the credentials file yourself** — do not instruct the human
-   to hand-author it (a founding-era constellation lost an evening to a
-   misspelled env var). `~/.config/beads/credentials`, mode 0600, per
-   current beads docs. Two known init-time gotchas: if `bd init` will
-   not authenticate via the credentials file, pass
-   `BEADS_DOLT_PASSWORD` via env for the init only; if bd dials
-   port 0, create `.beads/dolt-server.port` containing the server
-   port.
+1. In this repo (with `beads.role maintainer` set — see the Step 1
+   trap): `bd init`, accepting the embedded default. No credentials,
+   no port, no service. If any invocation ever asks for a Dolt
+   password (server arrangements later), pass it as the
+   `BEADS_DOLT_PASSWORD` env var or a wrapper env file — the
+   `~/.config/beads/credentials` file is not honored by current bd
+   (1.2.2), and a founding-era constellation lost an evening to a
+   hand-authored credential typo.
+2. Merge `templates/beads-config.yaml` into the generated
+   `.beads/config.yaml` and commit it — it disables per-write
+   auto-backup (backups are a host concern, not a write-path side
+   effect; document your dump/sync schedule in
+   `brain/doc/ledger-ops.md`).
 
-## Step 4 — Wire beads to the ledger
+## Step 4 — Wire sync and prove the round trip
 
-- `bd init` in this repo, pointed at the Dolt server per current beads
-  docs (the mechanism has changed over time — verify).
-- Merge `templates/beads-config.yaml` into the generated
-  `.beads/config.yaml` and commit it — it disables per-write
-  auto-backup (backups are a host concern, not a write-path side
-  effect; set up a scheduled dump or Dolt remote push instead and
-  document it in `brain/doc/ledger-ops.md`). **Backup caveat for
-  memories:** some bd versions (1.1.2 included) never stage or commit
+- Wire the ledger to your private remote per current beads docs
+  (`bd dolt push` / `bd dolt pull` against `origin`'s
+  `refs/dolt/data`). Push once and confirm the ref exists:
+  `git ls-remote origin 'refs/dolt/*'`.
+- **Sync caveat for memories:** some bd versions never stage or commit
   the Dolt `config` table that `bd remember` writes to, so a
-  commit-level remote push silently omits every memory saved since the
-  last manual commit. Check through the running ledger server (not the
-  embedded Dolt CLI, which is the wrong concurrency boundary against a
-  live server):
+  commit-level sync silently omits every memory saved since the last
+  manual commit. Check with
   `bd sql "SELECT table_name, staged, status FROM dolt_status WHERE table_name = 'config'"`
   — if it shows `modified`, run, as two separate commands,
   `bd sql "CALL dolt_add('config')"` then
   `bd sql "CALL dolt_commit('-m','commit config table')"`
-  before (or on a schedule alongside) any remote push. A full
-  `dolt dump` also captures the working set, but must be server-aware
-  or run with the server stopped — an unqualified filesystem command
-  against a live server's data directory has the same boundary
-  problem.
+  before (or on a schedule alongside) any `bd dolt push`.
 - Record the constellation's bd version in ledger memory under the well-known
   key: `bd remember --key bd-expected-version "..."` — and write the
   same version into `.claude/skills/seat-wake/bd-baseline`. Seat-wake
   compares against both at every wake; upgrading bd is thereafter a
   deliberate constellation-wide act (bump the memory, roll the seats).
 - **Round-trip test:** create a scratch bead, read it back, update it,
-  close it. From a *second shell*, confirm the same. Then restart the
-  Dolt server and confirm `bd` recovers — "retry later," not
-  corruption.
+  close it. From a *second shell*, confirm the same. Then `bd dolt
+  push`, and from a scratch clone `bd dolt pull` and read the bead
+  back — sync you haven't proven is sync you don't have.
+- If a write ever fails with `embeddeddolt: store is read-only`, the
+  message is misleading: check `git config --get-all beads.role`
+  first (Step 1's contributor-routing trap), not filesystem
+  permissions.
 
 ## Step 5 — Adopt the constitution
 
