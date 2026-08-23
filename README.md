@@ -103,6 +103,10 @@ waiting on your answers to four questions...
 That's not a fresh model pretending. That's a seat that read its own
 diary, checked the shared ledger, and picked up where it left off.
 
+And when seats coordinate for the first time, it tends to look like
+[the sweep](brain/doc/playbook-sweep.md) — a pattern that showed up on
+its own before it had a name.
+
 ## Getting started
 
 **Supported baseline: Linux with systemd.** WSL2 counts — one of our
