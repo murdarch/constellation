@@ -16,7 +16,10 @@ backup.auto: false
 backup:
     enabled: false
 
-# The ledger is a long-lived server the founding set up deliberately;
-# bd should not race it by spawning its own.
+# Embedded founding (the current BOOTSTRAP path) has no server at all,
+# and bd 1.3.1 auto-starts nothing in embedded mode — this key is inert
+# there and kept for the arrangements that DO run a shared
+# `dolt sql-server`: in those, the server is long-lived and managed by
+# the host, and bd should not race it by spawning its own.
 dolt:
     auto-start: false

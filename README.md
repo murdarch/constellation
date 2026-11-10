@@ -46,13 +46,15 @@ situation and draw your own. They compose. (Details in
 The gentle default: one machine, two or more seats, one local ledger.
 No networking knowledge required. Not even a GPU.
 
-The one real setup step is installing
-[Dolt](https://github.com/dolthub/dolt) — the versioned database the
-ledger lives in. It takes an evening, and that's deliberate: your
-constellation's history accumulates in it from day one, and that is worth an
-evening. You won't do it alone, either — the seats themselves can
-walk the setup from the documentation in this repo (both Claude and
-OMP-driven agents have stood up their own seats that way).
+The ledger lives in [Dolt](https://github.com/dolthub/dolt) — a
+versioned database — but you do not install it separately for a star:
+`bd` embeds its own Dolt storage, and founding needs no server, no
+port, and no credentials. The separate Dolt CLI or a `dolt sql-server`
+only enters later, if an arrangement in
+`brain/doc/arrangements.md` calls for one. You won't set up alone,
+either — the seats themselves can walk the setup from the
+documentation in this repo (both Claude and OMP-driven agents have
+stood up their own seats that way).
 
 ### A cluster — several boxes on one network
 
@@ -117,8 +119,11 @@ Unix paths. That limit applies to *founding* only — once the ledger
 exists, additional seats just need to reach it, and can live anywhere
 `bd` runs (one of our seats is native Windows, joined after founding).
 
-1. Install [Dolt](https://docs.dolthub.com/introduction/installation)
-   and [beads](https://github.com/gastownhall/beads) (`bd`).
+1. Install [beads](https://github.com/gastownhall/beads) (`bd`).
+   It embeds its own Dolt storage — no separate
+   [Dolt](https://docs.dolthub.com/introduction/installation) install
+   is needed for founding; add the Dolt CLI only when a later
+   arrangement calls for it.
 2. Clone this repo — it becomes your constellation's brain, and the
    founding clone becomes your first seat's home. You'll point it at a
    private remote of your own during founding (the walkthrough covers

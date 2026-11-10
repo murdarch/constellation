@@ -114,11 +114,18 @@ found embedded.)
 1. In this repo (with `beads.role maintainer` set — see the Step 1
    trap): `bd init`, accepting the embedded default. No credentials,
    no port, no service. If any invocation ever asks for a Dolt
-   password (server arrangements later), pass it as the
-   `BEADS_DOLT_PASSWORD` env var or a wrapper env file — the
-   `~/.config/beads/credentials` file is not honored by current bd
-   (1.2.2), and a founding-era constellation lost an evening to a
-   hand-authored credential typo.
+   password (server arrangements later): as of bd 1.3.1
+   (checked 2026-11-10 via `bd dolt set --help`), bd documents three
+   routes with this precedence — the `BEADS_DOLT_PASSWORD` env var
+   (highest priority), a credentials file at
+   `~/.config/beads/credentials` (INI-style: a `[host:port]` section
+   with `password = ...`), or `BEADS_CREDENTIALS_FILE` pointing at a
+   file elsewhere. Older bd releases disagreed about whether the
+   credentials file was honored at all (a founding-era constellation
+   lost an evening to exactly that), so verify against *your installed
+   version's* help before trusting any of them, and type passwords
+   into files carefully — a hand-authored typo fails exactly like a
+   wrong password.
 2. Merge `templates/beads-config.yaml` into the generated
    `.beads/config.yaml` and commit it — it disables per-write
    auto-backup (backups are a host concern, not a write-path side
@@ -129,8 +136,14 @@ found embedded.)
 
 - Wire the ledger to your private remote per current beads docs
   (`bd dolt push` / `bd dolt pull` against `origin`'s
-  `refs/dolt/data`). Push once and confirm the ref exists:
-  `git ls-remote origin 'refs/dolt/*'`.
+  `refs/dolt/data`). The **first publish must be `bd dolt push`**:
+  on a fresh remote with no `refs/dolt/data` yet, `bd sync` starts
+  with a pull and fails with "no branches found in remote" (observed
+  on bd 1.3.1, 2026-11-10). Push once and confirm the ref exists:
+  `git ls-remote origin 'refs/dolt/*'`. After that first push,
+  `bd sync` is the ongoing loop — it pulls, checks for conflicts
+  positively, recomputes blocked flags, and pushes, with distinct
+  exit codes a timer can branch on (`bd sync --help`).
 - **Sync caveat for memories:** some bd versions never stage or commit
   the Dolt `config` table that `bd remember` writes to, so a
   commit-level sync silently omits every memory saved since the last
@@ -192,8 +205,30 @@ of founding is that tomorrow, you wake up knowing who you are.
 
 - **A second seat** makes it a constellation: another home directory
   (cloned from `origin`, your private brain — never the public kit),
-  another roster row, the same ledger. The second seat founds itself
-  the same way — survey, name, diary #1.
+  another roster row, and *its own embedded replica of the same
+  ledger*. A git clone alone carries no ledger — `.beads/` data does
+  not travel through git, and `bd list` in a fresh clone reports no
+  database. The worked bring-up (verified on bd 1.3.1, Linux,
+  2026-11-10):
+
+  1. `git clone <your-private-remote> <second-home>` and `cd` in.
+  2. `bd init` (embedded default — same as founding).
+  3. `bd dolt pull` — the ledger state arrives from `origin`'s
+     `refs/dolt/data`: issues, dependencies, and operational
+     memories alike.
+  4. From then on, each seat runs `bd sync` to publish and receive —
+     edits made at one seat (claims, dependency changes) appear at
+     the other after both have synced, with blocked-flags recomputed.
+     Concurrent edits merge where safe; a conflict halts `bd sync`
+     with exit 2 and waits for an operator, never auto-resolving.
+
+  Each clone is an independent database that synchronizes — not a
+  second connection to one database. (A genuinely shared single
+  server is the cluster arrangement in `brain/doc/arrangements.md`.)
+  The same four steps are also the **restore path**: a fresh clone
+  plus `bd init` plus `bd dolt pull` recovers the full work state.
+  The second seat then founds itself the same way — survey, name,
+  diary #1.
 - **A cluster / far stars / a nebula**: `brain/doc/arrangements.md`
   and the worked example in `brain/doc/far-stars-tunnel.md`, when the
   constellation outgrows the box.

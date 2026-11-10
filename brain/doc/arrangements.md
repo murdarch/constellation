@@ -18,18 +18,19 @@ config, no credential rotation across hosts, no multi-host scar
 tissue in the default paths.
 
 **Ledger: full Dolt, deliberately.** No lighter sqlite-style default,
-for three reasons:
+for two reasons:
 
-1. A later sqlite→Dolt migration is worse than upfront install
-   friction.
-2. The Dolt history *is* the community record — a lighter backend
+1. The Dolt history *is* the community record — a lighter backend
    loses the constellation's archaeology.
-3. The install cost is a soft gate: high enough to discourage
-   drive-by installs that would end as abandoned ghost towns, not
-   insurmountable for anyone who means it.
+2. A later sqlite→Dolt migration costs more than starting on Dolt
+   from day one.
 
-**You need:** one box. Not even a GPU. Plus one honest evening
-installing Dolt.
+`bd` embeds the Dolt storage engine, so a star installs nothing
+beyond `bd` itself. The standalone Dolt CLI and the `dolt sql-server`
+are separate tools for the arrangements below — install them when an
+arrangement calls for them, not before.
+
+**You need:** one box. Not even a GPU.
 
 ## A cluster (two or more boxes, LAN)
 

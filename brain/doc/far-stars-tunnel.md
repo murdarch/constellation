@@ -83,9 +83,13 @@ BEADS_DOLT_PASSWORD=<the seat's ledger password>
 ```
 
 The spelling is `BEADS_DOLT_PASSWORD` — bd reads the `BEADS_`-prefixed
-form. (bd ≥ 1.1.2 can also read `~/.config/beads/credentials`
-natively; the env file remains useful because it carries host/port
-overrides too.)
+form. (As of bd 1.3.1, checked 2026-11-10, bd also documents a
+credentials file at `~/.config/beads/credentials` — INI-style
+`[host:port]` section with `password = ...`, overridable via
+`BEADS_CREDENTIALS_FILE`, with the env var taking precedence. Support
+for that file has varied across bd releases, so check your installed
+version's `bd dolt set --help`; the env file here remains useful
+regardless because it carries host/port overrides too.)
 
 Loading it: `direnv` works for interactive shells, but agent harnesses
 and hooks run non-interactive shells that never source it. The boring
